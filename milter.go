@@ -41,12 +41,11 @@ func (b replyMilter) To(recipient string, macros map[string]string) milter.Respo
 // From is called when the client sends its MAIL FROM message. The sender's
 // address is passed without <> brackets.
 func (b replyMilter) From(from string, macros map[string]string) milter.Response {
-	log.Print("From ", from)
 	if !fromRegex.MatchString(from) {
-		log.Println(" SKIP")
+		log.Println("From ", from, " SKIP")
 		return milter.Accept
 	}
-	log.Println(" OK")
+	log.Println("From ", from, " OK")
 	return milter.Continue
 }
 
