@@ -1,0 +1,15 @@
+[Unit]
+Description=A milter service to add reply-to header
+After=network.target nss-lookup.target syslog.target
+
+[Service]
+ExecStart=/usr/local/bin/milter-replyto
+RuntimeDirectory=milter-replyto
+RuntimeDirectoryMode=0750
+User=milter
+Group=milter
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
