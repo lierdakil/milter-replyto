@@ -17,7 +17,7 @@ var fromRegex = regexp.MustCompile("@([^@]+\\.lan|livid\\.pp\\.ru)$")
 /* replyMilter object */
 type replyMilter struct {
 	milter.Milter
-	hasReplyToHeader bool
+	hasReplyToHeader *bool
 }
 
 // Connect is called when a new SMTP connection is received. The values for
@@ -41,25 +41,28 @@ func (b replyMilter) To(recipient string, macros map[string]string) milter.Respo
 // From is called when the client sends its MAIL FROM message. The sender's
 // address is passed without <> brackets.
 func (b replyMilter) From(from string, macros map[string]string) milter.Response {
+	log.Print("From ", from)
 	if !fromRegex.MatchString(from) {
+		log.Println(" SKIP")
 		return milter.Accept
 	}
-	b.hasReplyToHeader = false
+	log.Println(" OK")
 	return milter.Continue
 }
 
 // Headers is called when the message headers have been received.
 func (b replyMilter) Headers(headers textproto.MIMEHeader) milter.Response {
-	if headers.Get("Reply-To") != "" {
-		b.hasReplyToHeader = true
-	}
+	var rt = headers.Get("Reply-To")
+	*b.hasReplyToHeader = (rt != "")
+	log.Println("Reply-To header: ", *b.hasReplyToHeader, rt)
 	return milter.Continue
 }
 
 // Body is called when the message body has been received. It gives an
 // opportunity for the milter to modify the message before it is delivered.
 func (b replyMilter) Body(body []byte, m milter.Modifier) milter.Response {
-	if !b.hasReplyToHeader {
+	if !*b.hasReplyToHeader {
+		log.Println("Added Reply-To header")
 		m.AddHeader("Reply-To", "root@livid.pp.ru")
 	}
 	return milter.Accept
@@ -69,7 +72,7 @@ func (b replyMilter) Body(body []byte, m milter.Modifier) milter.Response {
 func runServer(socket net.Listener) {
 	// declare milter init function
 	init := func() milter.Milter {
-		return replyMilter{}
+		return replyMilter{hasReplyToHeader: new(bool)}
 	}
 	// start server
 	if err := milter.Serve(socket, init); err != nil {
